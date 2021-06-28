@@ -1,0 +1,96 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+install.packages('FNN')
+install.packages('RCurl')
+install.packages('MASS')
+install.packages('leaps')
+library(MASS) # stepwise regression
+library(leaps) # all subsets regression
+```
+
+
+Dataset: http://vincentarelbundock.github.io/Rdatasets/csv/Ecdat/Computers.csv
+1. Create a multiple linear regression model to predict price.
+(a) Split the dataset to 70% of training and 30% of test sets.
+
+```{r}
+getwd()
+Computer_s <- read.csv(file="Computers.csv", header=TRUE, sep=",")
+Computer_s
+```
+
+
+
+```{r}
+rn_train <- sample(nrow(Computer_s), floor(nrow(Computer_s)*0.7))
+train <- Computer_s[rn_train,]
+test <- Computer_s[-rn_train,]
+```
+
+
+(b) Create a multiple linear regression model on the training set using ram, screen,
+speed, hd and ads as independent variables.
+
+
+```{r}
+model_mlr <- lm(price~ram+speed+screen+hd+ads, data=train)
+model_mlr
+```
+(c) Apply predict() function on the test set.
+```{r}
+prediction <- predict(model_mlr, interval="prediction",newdata =test)
+
+```
+(d) Calculate the errors (prediction price – test price) in predictions and show the
+histogram of errors.
+```{r}
+errors <- prediction[,"fit"] - test$price
+hist(errors)
+```
+
+(e) Compute the root mean squared errors.
+
+
+```{r}
+rmse <- sqrt(sum((prediction[,"fit"]-test$price)^2)/nrow(test))
+rmse
+```
+2. Apply forward selection and backward elimination algorithms to the dataset.
+```{r}
+full <- lm(price~ram+hd+speed+screen+ads+trend,data=train)
+null <- lm(price~1,data=train)
+stepF <- stepAIC(null, scope=list(lower=null, upper=full),direction= "forward", trace=TRUE)
+summary(stepF)
+```
+
+Backward elimination:
+```{r}
+full <- lm(price~ram+hd+speed+screen+ads+trend,data=train)
+stepB <- stepAIC(full, direction= "backward", trace=TRUE)
+summary(stepB)
+
+```
+3. Apply regsubsets() to see the best combination of the attributes.
+```{r}
+subsets<-regsubsets(price~ram+hd+speed+screen+ads+trend,data=train, nbest=1)
+sub.sum <- summary(subsets)
+as.data.frame(sub.sum$outmat)
+
+```
+In the output, * denotes the variables included to the subset. For example,
+the best combination of 4 attributes is: ram, speed, screen and trend, and
+the best combination of 5 attributes is: ram, hd, speed, screen and trend.
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
